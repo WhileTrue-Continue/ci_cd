@@ -15,6 +15,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
     git make nano patch pkg-config unzip \
     xz cmake gdb ccache patch yasm mold lld
 
+# Okay
 # RUN dnf downgrade libstdc++ libstdc++-devel gcc gcc-c++ --allowerasing -y
 
 
