@@ -96,57 +96,6 @@ RUN pwd
 ENV FORCE_UNSAFE_CONFIGURE=1
 
 # Build SDKs for each architecture https://github.com/godotengine/buildroot#using-buildroot-to-generate-sdks
-RUN cd /root/buildroot && \
-    for arch in $GODOT_SDK_VERSIONS; do \
-        echo "::group::Building SDK for $arch" && \
-        echo "Setting up configuration for $arch..." && \
-        config_file="config-godot-$arch"; \
-        cp $config_file .config && \
-        make olddefconfig && \
-        # Clean up any previous builds
-        echo "::debug::Removing previous output directory for clean build" && \
-        rm -rf output && mkdir output && \
-        echo "Starting clean build for $arch..." && \
-        make clean sdk && \
-        # Determine correct naming for the SDK output directory and tar file
-        if [ "$arch" = "armv7" ]; then \
-            sdk_output_dir="/root/${arch}-godot-linux-gnueabihf_sdk"; \
-            sdk_file="arm-godot-linux-gnueabihf_sdk-buildroot.tar.bz2"; \
-        else \
-            sdk_output_dir="/root/${arch}-godot-linux-gnu_sdk"; \
-            sdk_file="${arch}-godot-linux-gnu_sdk-buildroot.tar.gz"; \
-        fi; \
-        echo "::debug::Setting sdk_output_dir to ${sdk_output_dir} and sdk_file to ${sdk_file}" && \
-        # Move and extract SDK to the specified output directory
-        if [ -f "output/images/${sdk_file}" ]; then \
-            echo "::group::Extracting SDK for $arch" && \
-            echo "Extracting SDK for $arch to ${sdk_output_dir}..." && \
-            mkdir -p "${sdk_output_dir}" && \
-            tar -xf "output/images/${sdk_file}" -C "${sdk_output_dir}" && \
-            rm -f "output/images/${sdk_file}" && \
-            cd "${sdk_output_dir}" && \
-     #       ./relocate-sdk.sh && \
-            cd /root/buildroot && \
-            echo "::endgroup::" && \
-        else \
-            echo "::warning::SDK file for $arch not found. Skipping extraction step." && \
-        fi; \
-        echo "::notice::SDK for $arch built and extracted to ${sdk_output_dir}" && \
-        echo "::endgroup::" && \
-    done && \
-    # Log summary of all output directories
-    echo "::group::SDK Build Summary" && \
-    echo "SDKs have been built for the following architectures and are located at:" && \
-    for arch in $GODOT_SDK_VERSIONS; do \
-        if [ "$arch" = "armv7" ]; then \
-            sdk_output_dir="/root/${arch}-godot-linux-gnueabihf_sdk"; \
-        else \
-            sdk_output_dir="/root/${arch}-godot-linux-gnu_sdk"; \
-        fi; \
-        echo "::notice::${arch} SDK directory: ${sdk_output_dir}" && \
-    done && \
-    echo "::endgroup::" && \
-    echo "::notice::SDK build process complete. All logs are summarized above."
 
 
 CMD /bin/bash
