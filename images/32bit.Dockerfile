@@ -94,6 +94,18 @@ WORKDIR /root
 ENV GODOT_SDK_VERSIONS="i686"
 ENV BUILDROOT_REPO="https://github.com/godotengine/buildroot.git"
 
+
+# Clone the buildroot repository
+RUN git clone ${BUILDROOT_REPO} buildroot
+
+RUN pwd
+
+# For buildroot
+ENV FORCE_UNSAFE_CONFIGURE=1
+
+# Build SDKs for each architecture https://github.com/godotengine/buildroot#using-buildroot-to-generate-sdks
+
+
 RUN cd /root/buildroot && \
     for arch in $GODOT_SDK_VERSIONS; do \
         echo "::group::Building SDK for $arch" && \
@@ -147,15 +159,6 @@ RUN cd /root/buildroot && \
     echo "::notice::SDK build process complete. All logs are summarized above."
 
 
-# Clone the buildroot repository
-RUN git clone ${BUILDROOT_REPO} buildroot
-
-RUN pwd
-
-# For buildroot
-ENV FORCE_UNSAFE_CONFIGURE=1
-
-# Build SDKs for each architecture https://github.com/godotengine/buildroot#using-buildroot-to-generate-sdks
 
 
 CMD /bin/bash
