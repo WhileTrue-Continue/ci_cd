@@ -2,7 +2,7 @@ name: Update Dockerfiles
 on:
   push:
     paths:
-      - 'images/**'
+      - 'images/*32*'
       - '.github/docker.yaml'
 
 
