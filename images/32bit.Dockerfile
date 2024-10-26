@@ -125,12 +125,12 @@ RUN cd /root/buildroot && \
             cd "${sdk_output_dir}" && \
             ./relocate-sdk.sh && \
             cd /root/buildroot && \
-            echo "::endgroup::" \
+            echo "::endgroup::"; \
         else \
-            echo "::warning::SDK file for $arch not found. Skipping extraction step." && \
+            echo "::warning::SDK file for $arch not found. Skipping extraction step."; \
         fi; \
         echo "::notice::SDK for ${arch} built and extracted to ${sdk_output_dir}" && \
-        echo "::endgroup::" && \
+        echo "::endgroup::"; \
     done && \
     # Log summary of all output directories
     echo "::group::SDK Build Summary" && \
@@ -141,7 +141,7 @@ RUN cd /root/buildroot && \
         else \
             sdk_output_dir="/root/${arch}-godot-linux-gnu_sdk"; \
         fi; \
-        echo "::notice::${arch} SDK directory: ${sdk_output_dir}" && \
+        echo "::notice::${arch} SDK directory: ${sdk_output_dir}"; \
     done && \
     echo "::endgroup::" && \
     echo "::notice::SDK build process complete. All logs are summarized above."
