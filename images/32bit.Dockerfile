@@ -125,7 +125,7 @@ RUN cd /root/buildroot && \
             cd "${sdk_output_dir}" && \
             ./relocate-sdk.sh && \
             cd /root/buildroot && \
-            echo "::endgroup::" && \
+            echo "::endgroup::" \
         else \
             echo "::warning::SDK file for $arch not found. Skipping extraction step." && \
         fi; \
