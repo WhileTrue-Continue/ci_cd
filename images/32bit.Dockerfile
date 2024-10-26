@@ -91,7 +91,7 @@ FROM base AS godot_sdk
 
 WORKDIR /root
 
-ENV GODOT_SDK_VERSIONS="i686 armv7"
+ENV GODOT_SDK_VERSIONS="i686"
 ENV BUILDROOT_REPO="https://github.com/godotengine/buildroot.git"
 
 # Clone the buildroot repository
