@@ -125,7 +125,7 @@ RUN cd /root/buildroot && \
             tar -xf "output/images/${sdk_file}" -C "${sdk_output_dir}" && \
             rm -f "output/images/${sdk_file}" && \
             cd "${sdk_output_dir}" && \
-            ./relocate-sdk.sh && \
+     #       ./relocate-sdk.sh && \
             cd /root/buildroot && \
             echo "::endgroup::" && \
         else \
