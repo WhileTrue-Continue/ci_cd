@@ -2,6 +2,8 @@ name: 🔗 GHA
 on:
   repository_dispatch:
     types: [trigger_build]
+  workflow_dispatch:
+  
 env:
   BASE_NAME: Blazium_v
 
