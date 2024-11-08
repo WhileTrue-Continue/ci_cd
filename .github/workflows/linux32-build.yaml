@@ -23,7 +23,7 @@ jobs:
   setup-and-build:
     runs-on: ubuntu-latest
     container:
-      image: bioblaze/blazium-linux32:latest
+      image: bioblaze/blazium-ubuntu32:latest
     strategy:
       matrix:
         include: 
@@ -34,12 +34,10 @@ jobs:
             path: /root/arm-godot-linux-gnueabihf_sdk-buildroot
             type: arm32
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-        with:
-          repository: blazium-engine/blazium
-          ref: ${{ github.event.client_payload.branch }}
-          fetch-depth: 1
+      - name: Get Engine Repo from Branch ${{ github.event.client_payload.branch }}
+        run: |
+          git clone https://github.com/blazium-engine/blazium.git --depth 1 --branch ${{ github.event.client_payload.branch }} ${{ github.event.client_payload.branch }}
+      
 
       - name: Get BASE_PATH
         id: pathing
@@ -55,7 +53,7 @@ jobs:
           else
             echo "BASE_NAME=$PLATFORM-${{ matrix.type }}" >> "$GITHUB_OUTPUT"
             echo "STEP_NAME=${{ matrix.name }}" >> "$GITHUB_OUTPUT"
-
+          fi
       - name: Download Mono Glue
         if: ${{ inputs.MONO == 1 }}
         uses: actions/download-artifact@v3
@@ -71,20 +69,18 @@ jobs:
           cp -r /root/mono-glue/GodotSharp/GodotSharpEditor/Generated modules/mono/glue/GodotSharp/GodotSharpEditor/
           echo "::endgroup::"
 
-      - name: Setup Path for ${{ steps.naming.outputs.STEP_NAME }}
-        run: |
-          echo "${{ matrix.path }}/bin" >> "$GITHUB_PATH"
-          echo "::notice::Path for ${{ steps.naming.outputs.STEP_NAME }} set up successfully"
-
       - name: Build for ${{ steps.naming.outputs.STEP_NAME }} Editor
         id: build_editor
         run: |
+          echo "::debug::Entering Directory ${{ github.event.client_payload.branch }}"
+          cd ${{ github.event.client_payload.branch }}
           echo "::group::Building Editor for ${{ steps.naming.outputs.STEP_NAME }}"
           if [ "$MONO" -eq 1 ]; then
-            scons platform=$PLATFORM arch=${{ matrix.type }} production=yes module_mono_enabled=yes target=editor
+            
+            scons platform=$PLATFORM arch=${{ matrix.type }} production=yes module_mono_enabled=yes target=editor builtin_enet=no builtin_freetype=no builtin_graphite=no builtin_harfbuzz=no builtin_libogg=no builtin_libpng=no builtin_libtheora=no builtin_libvorbis=no builtin_libwebp=no builtin_mbedtls=no builtin_miniupnpc=no builtin_pcre2=no builtin_zlib=no builtin_zstd=no
             ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=$PLATFORM
           else
-            scons platform=$PLATFORM arch=${{ matrix.type }} production=yes target=editor
+            scons platform=$PLATFORM arch=${{ matrix.type }} production=yes target=editor builtin_enet=no builtin_freetype=no builtin_graphite=no builtin_harfbuzz=no builtin_libogg=no builtin_libpng=no builtin_libtheora=no builtin_libvorbis=no builtin_libwebp=no builtin_mbedtls=no builtin_miniupnpc=no builtin_pcre2=no builtin_zlib=no builtin_zstd=no
           fi
           echo "::endgroup::"
         continue-on-error: true
@@ -111,7 +107,6 @@ jobs:
             scons platform=$PLATFORM arch=${{ matrix.type }} production=yes target=template_release
           fi
           echo "::endgroup::"
-        continue-on-error: true
 
       - uses: actions/upload-artifact@v3
         with:
