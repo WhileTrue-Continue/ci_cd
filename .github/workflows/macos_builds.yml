@@ -117,11 +117,12 @@ jobs:
         with:
           cache-name: ${{ matrix.cache-name }}
         continue-on-error: true
-
+        
       - name: Prepare artifact
         run: |
-          lipo -create ./bin/blazium.macos.${{ matrix.target }}.x86_64${{ matrix.mono && ".mono" || "" }} ./bin/blazium.macos.${{ matrix.target }}.arm64${{ matrix.mono && ".mono" || "" }} -output ./bin/blazium.macos.${{ matrix.target }}.universal${{ matrix.mono && ".mono" || "" }}
-          rm ./bin/blazium.macos.${{ matrix.target }}.x86_64${{ matrix.mono && ".mono" || "" }} ./bin/blazium.macos.${{ matrix.target }}.arm64${{ matrix.mono && ".mono" || "" }}
+          MONO_EXTENSION=if [[ ${{ matrix.name }} == *"MONO"* ]]; then ".mono"; else ""
+          lipo -create ./bin/blazium.macos.${{ matrix.target }}.x86_64$MONO_EXTENSION ./bin/blazium.macos.${{ matrix.target }}.arm64$MONO_EXTENSION -output ./bin/blazium.macos.${{ matrix.target }}.universal$MONO_EXTENSION
+          rm ./bin/blazium.macos.${{ matrix.target }}.x86_64$MONO_EXTENSION ./bin/blazium.macos.${{ matrix.target }}.arm64$MONO_EXTENSION
           strip bin/blazium.*
           chmod +x bin/blazium.*
 
