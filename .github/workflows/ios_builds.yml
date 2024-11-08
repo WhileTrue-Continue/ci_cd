@@ -1,0 +1,148 @@
+name: 🍏 iOS Builds
+on:
+  workflow_call:
+
+# Global Settings
+env:
+  # Used for the cache key. Add version suffix to force clean build.
+  GODOT_BASE_BRANCH: blazium-dev
+  SCONSFLAGS: verbose=yes warnings=no progress=no module_text_server_fb_enabled=yes strict_checks=yes
+  TERM: xterm
+
+concurrency:
+  group: ci-${{github.actor}}-${{ github.event.client_payload.type || 'nightly' }}-ios
+  cancel-in-progress: true
+
+jobs:
+  ios-template:
+    runs-on: macos-latest
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Template
+            cache-name: ios-template
+            sconsflags: ${{ github.event.client_payload.production && 'production=yes use_lto=no' || '' }}
+            mono: false
+
+          - name: Template/w MONO
+            cache-name: ios-template-mono
+            sconsflags: ${{ github.event.client_payload.production && 'production=yes use_lto=no' || '' }}
+            mono: true
+
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          repository: blazium-engine/blazium
+          ref: ${{ github.event.client_payload.branch || env.GODOT_BASE_BRANCH }}
+          submodules: recursive
+          fetch-depth: 2
+
+      # - uses: maxim-lobanov/setup-xcode@v1
+      #   with:
+      #     xcode-version: '15.0.1'
+
+      - name: Download and extract MoltenVK
+        run: |
+          mkdir -p deps/moltenvk
+          pushd deps/moltenvk
+          curl -L -o moltenvk.tar https://github.com/godotengine/moltenvk-osxcross/releases/download/vulkan-sdk-1.3.283.0-2/MoltenVK-all.tar
+          tar xf moltenvk.tar && rm -f moltenvk.tar
+          mv MoltenVK/MoltenVK/include/ MoltenVK/
+          mv MoltenVK/MoltenVK/static/MoltenVK.xcframework/ MoltenVK/
+          popd
+          
+      - name: Setup Vulkan SDK
+        run: |
+          sh misc/scripts/install_vulkan_sdk_macos.sh
+
+      - name: Restore Godot build cache
+        uses: ./.github/actions/godot-cache-restore
+        continue-on-error: true
+
+      - name: Setup Python and SCons
+        uses: ./.github/actions/godot-deps
+
+      - name: Download and extract mono-glue
+        if: matrix.mono
+        run: |
+          TYPE=${{ github.event.client_payload.type || 'nightly' }}
+          URL="https://cdn.blazium.app/${TYPE}/mono-glue/mono-glue-${TYPE}.tar.gz"
+          
+          # Download the file
+          curl -L $URL -o mono-glue.tar.gz
+
+          # Create target directory if it doesn't exist
+          mkdir -p modules/mono/glue/GodotSharp/GodotSharp/
+
+          # Extract the tar.gz file to the target directory
+          tar -xzvf mono-glue.tar.gz -C modules/mono/glue/GodotSharp/GodotSharp/
+
+      - name: Compilation (template_release, arm64)
+        uses: ./.github/actions/godot-build
+        with:
+          sconsflags: arch=arm64 ios_simulator=no ${{ env.SCONSFLAGS }} ${{ matrix.sconsflags }}
+          platform: ios
+          target: template_release
+          tests: false
+
+      - name: Compilation (template_debug, arm64)
+        uses: ./.github/actions/godot-build
+        with:
+          sconsflags: arch=arm64 ios_simulator=no ${{ env.SCONSFLAGS }} ${{ matrix.sconsflags }}
+          platform: ios
+          target: template_debug
+          tests: false
+
+      - name: Compilation (template_release, x86_64)
+        uses: ./.github/actions/godot-build
+        with:
+          sconsflags: arch=x86_64 ios_simulator=yes ${{ env.SCONSFLAGS }} ${{ matrix.sconsflags }}
+          platform: ios
+          target: template_release
+          tests: false
+
+      - name: Compilation (template_debug, x86_64)
+        uses: ./.github/actions/godot-build
+        with:
+          sconsflags: arch=x86_64 ios_simulator=yes ${{ env.SCONSFLAGS }} ${{ matrix.sconsflags }}
+          platform: ios
+          target: template_debug
+          tests: false
+
+      - name: Save Godot build cache
+        uses: ./.github/actions/godot-cache-save
+        continue-on-error: true
+
+      - name: Setup Template
+        run: |
+            mkdir -p ./ios/${{ github.event.client_payload.type || 'nightly' }}/templates
+            cp bin/libgodot.ios.template_release.arm64.a ./ios/${{ github.event.client_payload.type || 'nightly' }}/templates/libgodot.ios.a
+            cp bin/libgodot.ios.template_debug.arm64.a ./ios/${{ github.event.client_payload.type || 'nightly' }}/templates/libgodot.ios.debug.a
+            cp bin/libgodot.ios.template_release.x86_64.simulator.a ./ios/${{ github.event.client_payload.type || 'nightly' }}/templates/libgodot.ios.simulator.a
+            cp bin/libgodot.ios.template_debug.x86_64.simulator.a ./ios/${{ github.event.client_payload.type || 'nightly' }}/templates/libgodot.ios.debug.simulator.a
+
+      - name: Create Template
+        run: |
+          rm -rf ios_xcode
+          HERE=$(pwd)
+          cp -r misc/dist/ios_xcode ios_xcode
+          cp "./ios/${{ github.event.client_payload.type || 'nightly' }}/templates/libgodot.ios.simulator.a" ios_xcode/libgodot.ios.release.xcframework/ios-arm64_x86_64-simulator/libgodot.a
+          cp "./ios/${{ github.event.client_payload.type || 'nightly' }}/templates/libgodot.ios.debug.simulator.a" ios_xcode/libgodot.ios.debug.xcframework/ios-arm64_x86_64-simulator/libgodot.a
+          cp "./ios/${{ github.event.client_payload.type || 'nightly' }}/templates/libgodot.ios.a" ios_xcode/libgodot.ios.release.xcframework/ios-arm64/libgodot.a
+          cp "./ios/${{ github.event.client_payload.type || 'nightly' }}/templates/libgodot.ios.debug.a" ios_xcode/libgodot.ios.debug.xcframework/ios-arm64/libgodot.a
+          cp -r deps/moltenvk/MoltenVK/MoltenVK.xcframework ios_xcode/
+          rm -rf ios_xcode/MoltenVK.xcframework/{macos,tvos}*
+          cd ios_xcode
+          zip -q -9 -r "${HERE}/ios.zip" *
+          cd "${HERE}"
+          rm -rf ios_xcode
+
+      - name: Upload artifact
+        uses: ./.github/actions/upload-artifact
+        with:
+          name: ${{ matrix.cache-name }}-${{ github.event.client_payload.type || 'nightly' }}
+          path: "./ios.zip"
